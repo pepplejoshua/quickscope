@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-using std::move;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -34,8 +33,8 @@ class BinaryExpr : public ExprAST {
 public:
   BinaryExpr(char op, unique_ptr<ExprAST> lhs, unique_ptr<ExprAST> rhs) {
     Op = op;
-    Lhs = move(lhs);
-    Lhs = move(rhs);
+    Lhs = std::move(lhs);
+    Lhs = std::move(rhs);
   }
 
 private:
@@ -46,7 +45,7 @@ private:
 class FnCall : public ExprAST {
 public:
   FnCall(string nme, vector<unique_ptr<ExprAST>> fargs)
-      : fn(nme), args(move(fargs)) {}
+      : fn(nme), args(std::move(fargs)) {}
 
 private:
   string fn;
@@ -73,7 +72,7 @@ private:
 class FnDef {
 public:
   FnDef(unique_ptr<FnPrototype> fpr, unique_ptr<ExprAST> fbody)
-      : proto(move(fpr)), body(move(fbody)) {}
+      : proto(std::move(fpr)), body(std::move(fbody)) {}
 
 private:
   unique_ptr<FnPrototype> proto;
