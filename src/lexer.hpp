@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <string>
 using std::cerr;
@@ -11,7 +13,7 @@ struct Token {
   TokenType type;
 };
 
-Token next_token() {
+static Token next_token() {
   static auto cur = ' ';
   if (cur == EOF) {
     return Token{"\0", ENDFILE};
