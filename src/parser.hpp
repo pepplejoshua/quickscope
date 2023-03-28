@@ -88,7 +88,7 @@ static unique_ptr<ExprAST> parse_primary() {
     }
   }
   default:
-    return Err("Unknown token when expecting and expressiong :> " +
+    return Err("Unknown token when expecting an expression :> " +
                cur_token.text);
   }
 }
