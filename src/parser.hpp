@@ -2,6 +2,8 @@
 
 #include "ast.hpp"
 #include "lexer.hpp"
+#include <ctype.h>
+#include <map>
 #include <memory>
 #include <stdio.h>
 #include <string>
@@ -9,6 +11,7 @@
 
 using std::fprintf;
 using std::make_unique;
+using std::map;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -93,4 +96,64 @@ static unique_ptr<ExprAST> parse_primary() {
   }
 }
 
-static unique_ptr<ExprAST> parse_expr() {}
+struct Precedences {
+  map<char, int> binopPrecendences;
+
+  Precedences() {
+    binopPrecendences['<'] = 10;
+    binopPrecendences['+'] = 20;
+    binopPrecendences['-'] = 20;
+    binopPrecendences['*'] = 40;
+  }
+
+  int get_token_prec() {
+    if (cur_token.type != CHAR) {
+      return -1;
+    }
+
+    char op = cur_token.text[0];
+    if (!(isascii(op)))
+      return -1;
+
+    int precedence = binopPrecendences[op];
+    if (precedence <= 0)
+      return -1;
+
+    return precedence;
+  }
+};
+
+static Precedences BinOps;
+
+static unique_ptr<ExprAST> parse_bin_expr(int, unique_ptr<ExprAST>);
+
+static unique_ptr<ExprAST> parse_expr() {
+  auto lhs = parse_primary();
+  if (!lhs)
+    return lhs;
+  return parse_bin_expr(0, std::move(lhs));
+}
+
+static unique_ptr<ExprAST> parse_bin_expr(int expr_prec,
+                                          unique_ptr<ExprAST> lhs) {
+  while (true) {
+    int prec = BinOps.get_token_prec();
+    if (prec < expr_prec)
+      return lhs;
+
+    char bin_op = cur_token.text[0];
+    advance();
+    auto rhs = parse_primary();
+    if (!rhs)
+      return rhs;
+
+    int next_prec = BinOps.get_token_prec();
+    if (prec < next_prec) {
+      rhs = parse_bin_expr(prec + 1, std::move(rhs));
+      if (!rhs)
+        return rhs;
+    }
+
+    lhs = make_unique<BinaryExpr>(bin_op, std::move(lhs), std::move(rhs));
+  }
+}
