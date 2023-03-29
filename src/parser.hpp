@@ -30,7 +30,10 @@ unique_ptr<FnPrototype> ErrP(string msg) {
 
 static Token cur_token;
 
-static void advance() { cur_token = next_token(); }
+static Token advance() {
+  cur_token = next_token();
+  return cur_token;
+}
 
 static unique_ptr<NumberExpr> parse_num() {
   auto num = strtod(cur_token.text.c_str(), 0);
@@ -156,4 +159,53 @@ static unique_ptr<ExprAST> parse_bin_expr(int expr_prec,
 
     lhs = make_unique<BinaryExpr>(bin_op, std::move(lhs), std::move(rhs));
   }
+}
+
+static unique_ptr<FnPrototype> parse_fn_prototype() {
+  if (cur_token.type != IDENTIFIER)
+    return ErrP("Expected a function name in the function prototype.");
+
+  string fn_name = cur_token.text;
+  advance();
+
+  if (cur_token.text != "(")
+    return ErrP("Expected a '(' in the function prototype.");
+
+  // read list of parameter name
+  vector<string> params;
+  while (advance().type == IDENTIFIER)
+    params.push_back(cur_token.text);
+
+  if (cur_token.text != ")")
+    return ErrP("Expected a ')' in the function prototype.");
+
+  advance();
+  return make_unique<FnPrototype>(fn_name, params);
+}
+
+static unique_ptr<FnDef> parse_fn_def() {
+  advance();
+  auto Proto = parse_fn_prototype();
+  if (!Proto)
+    return nullptr;
+
+  if (auto BodyExpr = parse_expr()) {
+    return make_unique<FnDef>(std::move(Proto), std::move(BodyExpr));
+  } else {
+    return nullptr;
+  }
+}
+
+static unique_ptr<FnPrototype> parse_extern_decl() {
+  advance();
+  return parse_fn_prototype();
+}
+
+static unique_ptr<FnDef> parse_top_lvl_expr() {
+  if (auto Expr = parse_expr()) {
+    // making an anonymous fn, with the expr as its body
+    auto Proto = make_unique<FnPrototype>("", vector<string>());
+    return make_unique<FnDef>(std::move(Proto), std::move(Expr));
+  }
+  return nullptr;
 }
